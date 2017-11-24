@@ -51,16 +51,15 @@ class Mainwindow(QMainWindow):
 
         self.ui.table_registers.setHorizontalHeaderLabels([r.name for r in self.simulator.registers])
         self.ui.table_fregisters.setHorizontalHeaderLabels([r.name for r in self.simulator.fregisters])
-
-        self.ui.table_instructions.setRowCount(len(self.simulator.instructions))
         self.ui.table_funcuints.setRowCount(len(self.simulator.get_all_units()))
 
-        for i in range(len(self.simulator.instructions)):
-            inst = self.simulator.instructions[i]
-            self.ui.table_instructions.setItem(i, 0, QTableWidgetItem(inst.operation))
-            self.ui.table_instructions.setItem(i, 1, QTableWidgetItem(inst.dest))
-            self.ui.table_instructions.setItem(i, 2, QTableWidgetItem(inst.source1))
-            self.ui.table_instructions.setItem(i, 3, QTableWidgetItem(inst.source2))
+        self.ui.table_values.setColumnCount(len(self.simulator.registers))
+        self.ui.table_values.setRowCount(1)
+        self.ui.table_fvalues.setColumnCount(len(self.simulator.fregisters))
+        self.ui.table_fvalues.setRowCount(1)
+
+        self.ui.table_values.setHorizontalHeaderLabels([r.name for r in self.simulator.registers])
+        self.ui.table_fvalues.setHorizontalHeaderLabels([r.name for r in self.simulator.fregisters])
 
 
     def openSettingForm(self):
@@ -109,10 +108,20 @@ class Mainwindow(QMainWindow):
         self.ui.run_info.append(self.simulator.info)
         self.ui.label_cycle.setText(str(self.cycle))
 
-        for i in range(len(self.simulator.status_diagram)):
-            for j in range(len(self.simulator.status_diagram[i])):
-                if self.simulator.status_diagram[i][j] is not None:
-                    self.ui.table_instructions.setItem(i, j+4, QTableWidgetItem(str(self.simulator.status_diagram[i][j])))
+        self.ui.table_instructions.clearContents()
+        self.ui.table_instructions.setRowCount(len(self.simulator.instructions_status))
+        instructions = self.simulator.get_exec_inst()
+        for i in range(len(instructions)):
+            inst = instructions[i]
+            self.ui.table_instructions.setItem(i, 0, QTableWidgetItem(inst.operation))
+            self.ui.table_instructions.setItem(i, 1, QTableWidgetItem(inst.dest))
+            self.ui.table_instructions.setItem(i, 2, QTableWidgetItem(inst.source1))
+            self.ui.table_instructions.setItem(i, 3, QTableWidgetItem(inst.source2))
+
+        for i in range(len(self.simulator.instructions_status)):
+            for j in range(len(self.simulator.instructions_status[i])):
+                if self.simulator.instructions_status[i][j] is not None:
+                    self.ui.table_instructions.setItem(i, j+4, QTableWidgetItem(str(self.simulator.instructions_status[i][j])))
                     self.ui.table_instructions.item(i, j+4).setBackground(QColor(200,200,200))
                     self.ui.table_instructions.item(i, j+4).setForeground(QColor(255,0,0))
 
@@ -133,6 +142,7 @@ class Mainwindow(QMainWindow):
                 self.ui.table_registers.setItem(0, i, QTableWidgetItem(str(regs[i].funcunit)))
             else:
                 self.ui.table_registers.setItem(0, i, QTableWidgetItem(''))
+            self.ui.table_values.setItem(0, i, QTableWidgetItem(str(regs[i].value)))
 
 
         regs = self.simulator.get_floatregisters()
@@ -141,6 +151,8 @@ class Mainwindow(QMainWindow):
                 self.ui.table_fregisters.setItem(0, i, QTableWidgetItem(str(regs[i].funcunit)))
             else:
                 self.ui.table_fregisters.setItem(0, i, QTableWidgetItem(''))
+            self.ui.table_fvalues.setItem(0, i, QTableWidgetItem(str(regs[i].value)))
+
 
     def clear(self):
         self.ui.run_info.clear()

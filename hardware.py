@@ -28,6 +28,8 @@ def unit_add(op, a, b):
         return a+b
     elif 'SUB' in op:
         return a-b
+    elif 'JEQO' in op:
+        return int(a == 1)
     else:
         return 0
 
@@ -71,6 +73,7 @@ class Instruction():
         self.stage = 0
 
     def read_operands(self):
+        self.funcunit.read_data()
         self.stage = 1
 
     def execute(self):
@@ -101,6 +104,7 @@ class Instruction():
     def release(self):
         self.funcunit.release()
         self.funcunit = None
+        self.stage = 4
 
     def __repr__(self):
         return 'Instruction: {} {} {} {}'.format(self.operation, self.dest, self.source1, self.source2)
@@ -178,10 +182,10 @@ class FunctionUint():
         self.Rk = True
         self.remain_time = 0
 
-    def assignTask(self, op, fi:Register, fj:Register, fk:Register):
-        if fi.occupied:
+    def assignTask(self, op, fi:Register, fj:Register, fk:Register, inst):
+        if isinstance(fi, Register) and fi.occupied:
             return False
-
+        self.inst = inst
         self.op = op
         self.busy = True
         self.Fi = fi
@@ -189,7 +193,8 @@ class FunctionUint():
         self.Fk = fk
         self.remain_time = self.exec_time
 
-        self.Fi.hold(self, True)
+        if isinstance(self.Fi, Register):
+            self.Fi.hold(self, True)
 
         if isinstance(self.Fj, Register):
             if self.Fj.occupied:
@@ -219,35 +224,39 @@ class FunctionUint():
                 self.info = 'Fk: {} is occupied.'.format(self.Fk.name)
         return is_ready
 
+    def read_data(self):
+        if isinstance(self.Fj, int):
+            self.a = self.Fj
+        else:
+            self.a = self.Fj.value
+
+        if isinstance(self.Fk, int):
+            self.b = self.Fk
+        else:
+            self.b = self.Fk.value
+
     def exec(self):
         self.remain_time -= 1
 
         if self.remain_time == 0:
-            if isinstance(self.Fj, int):
-                a = self.Fj
-            else:
-                a = self.Fj.value
-
-            if isinstance(self.Fk, int):
-                b = self.Fk
-            else:
-                b = self.Fk.value
             try:
                 if self.func == unit_add:
-                    self.result = self.func(self.op, a, b)
+                    self.inst.result = self.func(self.op, self.a, self.b)
                 else:
-                    self.result = self.func(a, b)
+                    self.inst.result = self.func(self.a, self.b)
             except:
-                self.result = 0
+                self.inst.result = 0
             return True
         else:
             return False
 
     def write_result(self):
-        self.Fi.value = self.result
+        if isinstance(self.Fi, Register):
+            self.Fi.value = self.inst.result
 
     def release(self):
-        self.Fi.release()
+        if isinstance(self.Fi, Register):
+            self.Fi.release()
         if isinstance(self.Fj, Register):
             self.Fj.release()
         if isinstance(self.Fk, Register):

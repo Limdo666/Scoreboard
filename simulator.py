@@ -6,6 +6,7 @@ Description:
 """
 
 import hardware
+import string
 
 class Simulator():
     """
@@ -39,65 +40,82 @@ class Simulator():
 
     def load_code(self, code:str):
         insts = code.strip().split('\n')
-        self.instructions = [hardware.Instruction.ParseInstruction(i.strip()) for i in insts if i.strip()]
-        self.stall_instructions = []
-
-        self.stall_instructions.extend(self.instructions)
-        self.running_instructions = []
-        self.finished_instructions = []
-        self.status_diagram = [[None]*4 for i in range(len(self.instructions))]
+        self.instructions = [i.strip() for i in insts if i.strip()]
+        self.exec_instructions = []
         self.exec_index = 0
         self.instructions_status = []
+
     def run_one_cycle(self, cycle):
         self.info = ''
         # 先把运行完毕的寄存器的资源释放
-        for inst in self.running_instructions:
+        for inst in self.exec_instructions:
              if inst.stage == 3:
                  self.collectResource(inst)
 
-        for inst in self.running_instructions:
+        for inst in self.exec_instructions:
             if inst.stage == 0:
                 is_ready = self.checkForReadOperands(inst)
                 if is_ready:
-                    i = self.instructions.index(inst)
-                    self.status_diagram[i][1] = cycle
+                    i = self.exec_instructions.index(inst)
+                    self.instructions_status[i][1] = cycle
                     inst.read_operands()
                     self.info += '{} Read operands.\n'.format(inst)
 
             elif inst.stage == 1 or inst.stage == 1.5:
                 inst.execute()
-                i = self.instructions.index(inst)
-                self.status_diagram[i][2] = cycle
+                i = self.exec_instructions.index(inst)
+                self.instructions_status[i][2] = cycle
                 self.info += '{} Execute.\n'.format(inst)
 
             elif inst.stage == 2:
                 is_ready = self.checkForWriteResult(inst)
                 if is_ready:
-                    i = self.instructions.index(inst)
-                    self.status_diagram[i][3] = cycle
+                    i = self.exec_instructions.index(inst)
+                    self.instructions_status[i][3] = cycle
                     inst.write_result()
                     self.info += '{} Write result.\n'.format(inst)
-        if self.stall_instructions:
-            inst = self.stall_instructions[0]
-            u = self.checkForIssue(inst)
-            if u:
-                dest = self.get_register(inst.dest)
-                source1 = self.get_register(inst.source1)
-                source2 = self.get_register(inst.source2)
-                if not dest.occupied:
-                    u.assignTask(inst.operation, dest, source1, source2)
-                    inst.assignUnit(u)
-                    inst.issue()
-                    self.stall_instructions.remove(inst)
-                    self.running_instructions.append(inst)
-                    i = self.instructions.index(inst)
-                    self.status_diagram[i][0] = cycle
-                else:
-                    self.info += '\n!!!WAW hazard: {} Because of {}.\n\n'.format(inst, dest.funcunit)
 
-        if len(self.finished_instructions) == len(self.instructions):
-            self.finish = True
-        else:
+        while self.exec_index < len(self.instructions):
+            inst = self.instructions[self.exec_index]
+            if ':' in inst.split()[0]:
+                self.exec_index += 1
+            else:
+                inst = hardware.Instruction.ParseInstruction(inst)
+
+                if len(self.exec_instructions)!=0 and self.exec_instructions[-1].operation == 'JEQO' and self.exec_instructions[-1].stage!=4:
+                    break
+                else:
+                    u = self.checkForIssue(inst)
+                    if u:
+                        dest = self.get_register(inst.dest)
+                        source1 = self.get_register(inst.source1)
+                        source2 = self.get_register(inst.source2)
+                        if not isinstance(dest, hardware.Register):
+                            u.assignTask(inst.operation, dest, source1, source2, inst)
+                            inst.assignUnit(u)
+                            inst.issue()
+                            self.exec_instructions.append(inst)
+                            self.instructions_status.append([None]*4)
+                            self.instructions_status[-1][0] = cycle
+                            self.exec_index += 1
+                        elif not dest.occupied:
+                            u.assignTask(inst.operation, dest, source1, source2, inst)
+                            inst.assignUnit(u)
+                            inst.issue()
+                            self.exec_instructions.append(inst)
+                            self.instructions_status.append([None]*4)
+                            self.instructions_status[-1][0] = cycle
+                            self.exec_index += 1
+                        else:
+                            self.info += '\nWAW\thazard: {} Because of {}.\n\n'.format(inst, dest.funcunit)
+                break
+        self.finish = True
+        for i in self.exec_instructions:
+            if i.stage != 4:
+                self.finish = False
+                break
+
+        if self.exec_index < len(self.instructions):
             self.finish = False
 
     def checkForIssue(self, inst):
@@ -105,62 +123,73 @@ class Simulator():
             for u in self.intunits:
                 if u.busy == False:
                     return u
-        elif inst.operation.lower() == 'multd':
+        elif 'mult' in inst.operation.lower():
             for u in self.mulunits:
                 if u.busy == False:
                     return u
-        elif inst.operation.lower() == 'subd':
+        elif 'sub' in inst.operation.lower() or 'add' in inst.operation.lower() or inst.operation in ('GT', 'LT', 'EQ', 'JEQO'):
             for u in self.adduints:
                 if u.busy == False:
                     return u
-        elif inst.operation.lower() == 'divd':
+        elif 'div' in inst.operation.lower():
             for u in self.divunits:
-                if u.busy == False:
-                    return u
-        elif inst.operation.lower() == 'addd':
-            for u in self.adduints:
                 if u.busy == False:
                     return u
 
     def checkForReadOperands(self,inst):
         is_ready = True
-        index = self.running_instructions.index(inst)
+        index = self.exec_instructions.index(inst)
 
-        for i in self.running_instructions[:index]:
+        for i in self.exec_instructions[:index]:
+            if i.stage == 4:
+                continue
             if inst.funcunit.Fj == i.funcunit.Fi or inst.funcunit.Fk == i.funcunit.Fi:
                 is_ready = False
-                self.info += '\n!!!RAW hazard: {} Because of {}.\n\n'.format(inst, i)
+                self.info += '\nRAW\thazard: {} Because of {}.\n\n'.format(inst, i)
                 break
         return is_ready
 
     def checkForWriteResult(self, inst):
-        index = self.running_instructions.index(inst)
-        for i in self.running_instructions[:index]:
+        index = self.exec_instructions.index(inst)
+        for i in self.exec_instructions[:index]:
             if (inst.dest == i.source1 or inst.dest == i.source2) and i.stage <= 1:
-                self.info += '\n!!!WAR hazard: {} Because of {}.\n\n'.format(inst, i)
+                self.info += '\nWAR\thazard: {} Because of {}.\n\n'.format(inst, i)
                 return False
         return True
 
     def collectResource(self, inst):
         inst.release()
         self.info += '{} finished.\n'.format(inst)
-        self.running_instructions.remove(inst)
-        self.finished_instructions.append(inst)
-        for i in self.running_instructions:
-            if i.source1 == inst.dest:
-                i.funcunit.Qj = None
-                i.funcunit.Rj = True
-            if inst.dest == i.source2:
-                i.funcunit.Qk = None
-                i.funcunit.Rk = True
+        if inst.operation == 'JEQO' and inst.result == 1:
+            for i in self.instructions:
+                op = i.split()[0]
+                if ':' in op:
+                    op = op.strip(':')
+                    if inst.dest == op:
+                        self.exec_index = self.instructions.index(i)
+        else:
+            for i in self.exec_instructions:
+                if i.stage != 4:
+                    if i.source1 == inst.dest:
+                        i.funcunit.Qj = None
+                        i.funcunit.Rj = True
+                    if inst.dest == i.source2:
+                        i.funcunit.Qk = None
+                        i.funcunit.Rk = True
 
     def get_register(self, name:str):
         if name.startswith('R'):
             return self.registers[int(name[1:])]
         elif name.startswith('F'):
             return self.fregisters[int(name[1:])]
+        elif not name:
+            return 0
         else:
-            return int(name[:-1])
+            try:
+                rst = int(name.strip(string.punctuation))
+            except:
+                rst = name
+            return rst
 
     def get_all_units(self):
         units = self.intunits + self.mulunits + self.adduints + self.divunits
@@ -171,3 +200,6 @@ class Simulator():
 
     def get_floatregisters(self):
         return self.fregisters
+
+    def get_exec_inst(self):
+        return self.exec_instructions

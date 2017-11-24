@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1138</width>
-    <height>616</height>
+    <height>693</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -26,7 +26,7 @@
       <x>0</x>
       <y>50</y>
       <width>511</width>
-      <height>241</height>
+      <height>221</height>
      </rect>
     </property>
     <property name="title">
@@ -38,7 +38,7 @@
        <x>10</x>
        <y>20</y>
        <width>491</width>
-       <height>211</height>
+       <height>201</height>
       </rect>
      </property>
      <attribute name="horizontalHeaderDefaultSectionSize">
@@ -92,7 +92,7 @@
       <x>520</x>
       <y>50</y>
       <width>611</width>
-      <height>231</height>
+      <height>221</height>
      </rect>
     </property>
     <property name="title">
@@ -104,7 +104,7 @@
        <x>0</x>
        <y>20</y>
        <width>611</width>
-       <height>211</height>
+       <height>201</height>
       </rect>
      </property>
      <property name="showGrid">
@@ -174,9 +174,9 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>290</y>
+      <y>280</y>
       <width>1141</width>
-      <height>171</height>
+      <height>281</height>
      </rect>
     </property>
     <property name="sizePolicy">
@@ -186,13 +186,13 @@
      </sizepolicy>
     </property>
     <property name="title">
-     <string>Register result status</string>
+     <string>Register Status</string>
     </property>
     <widget class="QTableWidget" name="table_registers">
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>30</y>
+       <y>20</y>
        <width>1121</width>
        <height>61</height>
       </rect>
@@ -213,7 +213,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>100</y>
+       <y>80</y>
        <width>1121</width>
        <height>61</height>
       </rect>
@@ -222,6 +222,32 @@
       <font>
        <pointsize>7</pointsize>
       </font>
+     </property>
+     <attribute name="horizontalHeaderDefaultSectionSize">
+      <number>40</number>
+     </attribute>
+    </widget>
+    <widget class="QTableWidget" name="table_values">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>140</y>
+       <width>1121</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <attribute name="horizontalHeaderDefaultSectionSize">
+      <number>40</number>
+     </attribute>
+    </widget>
+    <widget class="QTableWidget" name="table_fvalues">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>200</y>
+       <width>1121</width>
+       <height>61</height>
+      </rect>
      </property>
      <attribute name="horizontalHeaderDefaultSectionSize">
       <number>40</number>
@@ -394,9 +420,9 @@ color: rgb(239, 41, 41);
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>460</y>
+      <y>560</y>
       <width>1131</width>
-      <height>151</height>
+      <height>131</height>
      </rect>
     </property>
     <property name="title">
@@ -408,7 +434,7 @@ color: rgb(239, 41, 41);
        <x>10</x>
        <y>30</y>
        <width>1111</width>
-       <height>121</height>
+       <height>91</height>
       </rect>
      </property>
      <property name="font">
