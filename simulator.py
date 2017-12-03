@@ -107,7 +107,7 @@ class Simulator():
                             self.instructions_status[-1][0] = cycle
                             self.exec_index += 1
                         else:
-                            self.info += '\nWAW\thazard: {} Because of {}.\n\n'.format(inst, dest.funcunit)
+                            self.info += '!!!\tWAW hazard:\t{}   {}.\n'.format(inst, dest.funcunit)
                 break
         self.finish = True
         for i in self.exec_instructions:
@@ -145,7 +145,7 @@ class Simulator():
                 continue
             if inst.funcunit.Fj == i.funcunit.Fi or inst.funcunit.Fk == i.funcunit.Fi:
                 is_ready = False
-                self.info += '\nRAW\thazard: {} Because of {}.\n\n'.format(inst, i)
+                self.info += '!!!\tRAW hazard:\t{}   {}.\n'.format(inst, i)
                 break
         return is_ready
 
@@ -153,7 +153,7 @@ class Simulator():
         index = self.exec_instructions.index(inst)
         for i in self.exec_instructions[:index]:
             if (inst.dest == i.source1 or inst.dest == i.source2) and i.stage <= 1:
-                self.info += '\nWAR\thazard: {} Because of {}.\n\n'.format(inst, i)
+                self.info += '!!!\tWAR hazard:\t{}   {}.\n'.format(inst, i)
                 return False
         return True
 
